@@ -1,0 +1,9 @@
+Install rvm 
+Install jruby - rvm install jruby
+Login to bash - /bin/bash --login
+Use jruby - rvm use jruby
+Install bundler - gem install bundler
+Install deps - bundle install
+Build gem - gem build logstash-filter-logtrail
+Test - bundle exec rspec
+install in logstash - 
