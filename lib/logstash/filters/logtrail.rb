@@ -12,24 +12,26 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 	config :patterns_file, :validate => :string
 	config :message_field, :validate => :string, :default => "message"
 	config :context_field, :validate => :string
-	config :pre_tag, validate => string, default => "<em>"
-	config :post_tag, validate => string, default => "</em>"
+	config :pre_tag, :validate => :string, :default => "logtrail.pre"
+	config :post_tag, :validate => :string, :default => "logtrail.post"
 
 	public
 	def register
 		#read patterns 
 		@patterns = Hash.new {|h,k| h[k] = Array.new}
-		patterns_json = JSON.parse(File.read(@patterns_file));
+		patterns_json = JSON.parse(File.read(@patterns_file))
+		patterns_count = 0
 		for pattern_json in patterns_json
 			if (pattern_json['args'].length > 0 )
-				if ( pattern_json[@context_field] ) 
-					@patterns[pattern_json[@context_field]].push pattern_json
+				if ( pattern_json['context'] ) 
+					@patterns[pattern_json['context']].push pattern_json
+					patterns_count = patterns_count + 1
 				else 
 					@logger.warn("Cannot find context key for #{pattern_json}")
 				end
 			end
 		end
-		@logger.info("Loaded #{@patterns.length} patterns from #{@patterns_file}")
+		@logger.info("Loaded #{patterns_count} patterns from #{@patterns_file}")
 	end # def register
 
 	public
@@ -39,9 +41,11 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 		message = event.get(@message_field)
 		parsed_log = parse_message(context,message)
 		if parsed_log
-		  event.set('logtrail_pattern',parsed_log.pattern)
-		  event.set('logtrail_message',parsed_log.encoded_message)
-		  event.set('logtrail_groups',parsed_log.groups)
+#			event.set('logtrail_message',parsed_log.pattern)
+#			event.set('logtrail_message',parsed_log.encoded_message)
+#			event.set('logtrail_messageId', parsed_log.messageId)
+			event.set('logtrail_groups',parsed_log.groups)
+			event.set('logtrail_pattern',parsed_log.pattern)
 		end
 
 		# filter_matched should go in the last line of our successful code
@@ -69,12 +73,13 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 	def parse_message(context,message)
 		patterns_for_context = @patterns[context]
 		if !patterns_for_context
-		  patterns_for_context = @patterns['Logtrail-Default-Context']
+		  patterns_for_context = @patterns['default-conetxt']
 		end
 		if patterns_for_context
 		  for pattern in patterns_for_context
 		    match_data = message.match(pattern['messageRegEx'])
 		    if match_data
+		    	metric.increment(:matches)
 		      @logger.debug("message |#{message}| pattern |#{pattern}| captures |#{match_data.captures}|")
 		      if (match_data.captures.length == 0)
 		        groups = nil
@@ -83,7 +88,7 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 		        groups = Hash[ match_data.names.zip( match_data.captures ) ]
 		        encoded_message = encode_log_message(message,match_data)
 		        @logger.debug("encoded_message |#{encoded_message}| pattern |#{pattern}| groups |#{groups}|")
-			      parsed_log = ParsedLog.new(encoded_message,pattern['messageRegEx'],groups)
+			      parsed_log = ParsedLog.new(pattern['messageId'],encoded_message,pattern['messageRegEx'],groups)
 			      return parsed_log
 		      end
 		    end
@@ -103,8 +108,9 @@ class MatchIndex
 end
 
 class ParsedLog
-	attr_reader :encoded_message, :pattern, :groups
-	def initialize(encoded_message,pattern,groups)
+	attr_reader :messageId, :encoded_message, :pattern, :groups
+	def initialize(messageId,encoded_message,pattern,groups)
+		@messageId = messageId
 		@encoded_message = encoded_message
 		@pattern = pattern
 		@groups = groups
