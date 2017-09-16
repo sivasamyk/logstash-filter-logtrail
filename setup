@@ -4,6 +4,7 @@ Login to bash - /bin/bash --login
 Use jruby - rvm use jruby
 Install bundler - gem install bundler
 Install deps - bundle install
+Install jars - rake vender
 Build gem - gem build logstash-filter-logtrail
 Test - bundle exec rspec
 install in logstash - 
