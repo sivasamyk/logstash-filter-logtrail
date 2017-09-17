@@ -52,7 +52,7 @@ describe LogStash::Filters::Logtrail do
       logtrail_data.should_not be_nil
       logtrail_data['patternId'].should_not be_nil
       logtrail_data['matchIndices'].should_not be_nil
-      expect(logtrail_data['matchIndices']).to eq("37,42")
+      expect(logtrail_data['matchIndices']).to eq([37,42])
     end
   end
 

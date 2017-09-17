@@ -12,16 +12,14 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 	config_name "logtrail"
 
 	# Path to patterns file
-	config :patterns_file, :validate => :string
+	config :es_hosts,  :validate => :array, :default => ["http://localhost:9200"]
 	config :message_field, :validate => :string, :default => "message"
 	config :context_field, :validate => :string
-	config :pre_tag, :validate => :string, :default => "logtrail.pre"
-	config :post_tag, :validate => :string, :default => "logtrail.post"
 
 	public
 	def register
 
-		@processor = com.github.logtrail.tools.LogProcessor.new("http://localhost:9200")
+		@processor = com.github.logtrail.tools.LogProcessor.new(es_hosts)
 		@processor.init()
 
 	end # def register
@@ -33,7 +31,6 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 		message = event.get(@message_field)
 		parsed_info = @processor.process(message,context)
 		if parsed_info
-			puts "#{parsed_info}"
 			event.set('logtrail',parsed_info)
 		end
 
