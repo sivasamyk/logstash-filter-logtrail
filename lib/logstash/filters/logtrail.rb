@@ -31,7 +31,7 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 		message = event.get(@message_field)
 		parsed_info = @processor.process(message,context)
 		if parsed_info
-			event.set('logtrail',parsed_info)
+			event.set('lt',parsed_info)
 		end
 
 		# filter_matched should go in the last line of our successful code
