@@ -15,11 +15,12 @@ class LogStash::Filters::Logtrail < LogStash::Filters::Base
 	config :es_hosts,  :validate => :array, :default => ["http://localhost:9200"]
 	config :message_field, :validate => :string, :default => "message"
 	config :context_field, :validate => :string
+	config :index_pattern, :validate => :string, :default => "logstash-*"
 
 	public
 	def register
 
-		@processor = com.github.logtrail.tools.LogProcessor.new(es_hosts)
+		@processor = com.github.logtrail.tools.LogProcessor.new(es_hosts, index_pattern)
 		@processor.init()
 
 	end # def register
